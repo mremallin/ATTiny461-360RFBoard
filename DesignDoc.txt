@@ -1,0 +1,14 @@
+System flow:
+
+1) Powerup
+2) Initialize system
+ - Initialize ports
+3) Initialize RF board
+ - Initalize LEDs
+ - Play startup animation
+4) Go to sleep
+ - Wait for interrupt due to power button (sync command)
+
+On interrupt received:
+1) Send sync command
+ - To send data, need to send when clocked by the RF board (another interrupt)
