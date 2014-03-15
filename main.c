@@ -33,9 +33,11 @@ uint16_t timeout_count = 0;
 bool
 verify_timeout()
 {
+#if 0
     if (timeout_count++ == TIMEOUT_MAX) {
         return TRUE;
     }
+#endif
     return FALSE;
 }
 
@@ -51,6 +53,8 @@ send_data(uint32_t data)
     DATA_PORT &= (0 << DATA_PIN);
 
     for (i = 0; i < RF_CMD_BITS; i++) {
+        _delay_ms(50);
+        PORTA ^= (1 << PA6);
         timeout_count = 0;
 
         // Waits for external clock
@@ -61,12 +65,18 @@ send_data(uint32_t data)
             }
         }
 
-        if (i == 10) {
-            DATA_PORT |= (1 << DATA_PIN);
+        if (i == RF_CMD_BITS - 1) {
+            DATA_PORT = (1 << DATA_PIN);
+        } else if (data & (1 << (9 - i))) {
+            DATA_PORT = (1 << DATA_PIN);
         } else {
-            DATA_PORT = ((data & (1 << (9 - i))) << DATA_PIN);
+            DATA_PORT = (0 << DATA_PIN);
         }
+
+        _delay_ms(50);
+        PORTA ^= (1 << PA6);
     }
+
     PORTA ^= (1 << CMD_IND_PIN);
 }
 
@@ -78,8 +88,8 @@ init_system()
     DATA_PORT = (1 << DATA_PIN);
 
     // Input pins for interrupt triggering
-    DDRA  = (0 << CLK_PIN) | (1 << TIMEOUT_PIN) | (1 << CMD_IND_PIN);
-    PORTA = (1 << CLK_PIN) | (1 << TIMEOUT_PIN) | (1 << CMD_IND_PIN);
+    DDRA  = (0 << CLK_PIN) | (1 << TIMEOUT_PIN) | (1 << CMD_IND_PIN) | (1 << PA6);
+    PORTA = (1 << CLK_PIN) | (1 << TIMEOUT_PIN) | (1 << CMD_IND_PIN) | (1 << PA6);
 
     // Enable external interrupts
     MCUCR  |= (1 << ISC00); // Interrupt on rising edge
@@ -90,7 +100,7 @@ void
 init_rf_led()
 {
     _delay_ms(400);
-    PORTA &= (0 << TIMEOUT_PIN) | (0 << CMD_IND_PIN);
+    PORTA &= (0 << TIMEOUT_PIN) | (0 << CMD_IND_PIN) | (1 << PA6);
     _delay_ms(50);
 
     /* Send LED init command */
