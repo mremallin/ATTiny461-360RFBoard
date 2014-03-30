@@ -11,118 +11,119 @@
 #define LED_CMD      0x084
 #define LED_ANIM_CMD 0x085
 
-#define TIMEOUT_MAX  60000
-
-#define RF_CMD_BITS  11
+#define RF_CMD_BITS  10
 
 #define DATA_PORT    PORTB
 #define DATA_DDR     DDRB
 #define DATA_PIN     PB0
+#define CLK_PORT     PORTA
+#define CLK_PORT_PIN PINA
+#define CLK_DDR      DDRA
 #define CLK_PIN      PA0
 
-//For debugging
-#define TIMEOUT_PIN  PA4    
-#define CMD_IND_PIN  PA5
+#define digitalRead(pin, port_pin)      \
+    ((port_pin & (1 << pin)) != 0)
+
+#define digitalWrite(pin, data)     \
+    if (data == 1) {                \
+        (DATA_PORT |= (1 << pin));  \
+    } else {                        \
+        (DATA_PORT &= ~(1 << pin)); \
+    }
+
+#define OUTPUT  1
+#define INPUT   0
+
+#define pinMode(ddr, pin, dir)      \
+    if (dir == OUTPUT) {            \
+        (ddr |= (1 << pin));        \
+    } else {                        \
+        (ddr &= ~(1 << pin));       \
+    }
 
 typedef uint8_t bool;
 #define TRUE  1
 #define FALSE 0
 
-uint16_t timeout_count = 0;
+uint8_t  led_cmd[RF_CMD_BITS]  = {0, 0, 1, 0, 0, 0, 0, 1, 0, 0};
+uint8_t  anim_cmd[RF_CMD_BITS] = {0, 0, 1, 0, 0, 0, 0, 1, 0, 1};
+uint8_t  sync_cmd[RF_CMD_BITS] = {0, 0, 0, 0, 0, 0, 0, 1, 0, 0};
 
-bool
-verify_timeout()
+void
+_delay_10ms(uint16_t count)
 {
-#if 0
-    if (timeout_count++ == TIMEOUT_MAX) {
-        return TRUE;
+    while (count--) {
+        _delay_ms(10);
     }
-#endif
-    return FALSE;
 }
 
 void
-send_data(uint32_t data)
+send_data(uint8_t *data)
 {
     uint8_t i;
     
-    //For debugging
-    PORTA ^= (1 << CMD_IND_PIN);
-
+    //Output
+    pinMode(DATA_DDR, DATA_PIN, OUTPUT);
     //Send start bit
-    DATA_PORT &= (0 << DATA_PIN);
+    digitalWrite(DATA_PIN, 0);
 
     for (i = 0; i < RF_CMD_BITS; i++) {
-        _delay_ms(50);
-        PORTA ^= (1 << PA6);
-        timeout_count = 0;
-
         // Waits for external clock
-        while((PINA & (1 << CLK_PIN)) == 0x01) {
-            if (verify_timeout()) {
-                PORTA |= (1 << TIMEOUT_PIN);
-                return;
-            }
-        }
+        while(digitalRead(CLK_PIN, CLK_PORT_PIN) != 0x00) {}
 
-        if (i == RF_CMD_BITS - 1) {
-            DATA_PORT = (1 << DATA_PIN);
-        } else if (data & (1 << (9 - i))) {
-            DATA_PORT = (1 << DATA_PIN);
+        if (data[i] != 0) {
+            digitalWrite(DATA_PIN, 1);
         } else {
-            DATA_PORT = (0 << DATA_PIN);
+            digitalWrite(DATA_PIN, 0);
         }
 
-        _delay_ms(50);
-        PORTA ^= (1 << PA6);
+        //Wait for rising edge
+        while(digitalRead(CLK_PIN, CLK_PORT_PIN) == 0x00) {}
     }
 
-    PORTA ^= (1 << CMD_IND_PIN);
+    digitalWrite(DATA_PIN, 1);
+    pinMode(DATA_DDR, DATA_PIN, INPUT);
 }
 
 void
 init_system()
 {
     // Output high for data transmission
-    DATA_DDR  = (1 << DATA_PIN);
-    DATA_PORT = (1 << DATA_PIN);
+    pinMode(DATA_DDR, DATA_PIN, INPUT);
 
     // Input pins for interrupt triggering
-    DDRA  = (0 << CLK_PIN) | (1 << TIMEOUT_PIN) | (1 << CMD_IND_PIN) | (1 << PA6);
-    PORTA = (1 << CLK_PIN) | (1 << TIMEOUT_PIN) | (1 << CMD_IND_PIN) | (1 << PA6);
+    pinMode(CLK_DDR, CLK_PIN, INPUT);
 
     // Enable external interrupts
     MCUCR  |= (1 << ISC00); // Interrupt on rising edge
-    GIMSK  |= (1 << INT0);                 // INT0 enable
+    GIMSK  |= (1 << INT0);  // INT0 enable
+    _delay_10ms(300);
 }
 
 void
 init_rf_led()
 {
-    _delay_ms(400);
-    PORTA &= (0 << TIMEOUT_PIN) | (0 << CMD_IND_PIN) | (1 << PA6);
+    /* Send LED init command */
+    send_data(led_cmd);
     _delay_ms(50);
 
-    /* Send LED init command */
-    send_data(LED_CMD);
-    _delay_ms(100);
-
     /* Send LED startup animation command */
-    send_data(LED_ANIM_CMD);
-    _delay_ms(100);
+    send_data(anim_cmd);
+    _delay_ms(50);
 }
 
 void
 send_rf_sync()
 {
-    send_data(SYNC_CMD);
-    _delay_ms(500);
+    send_data(sync_cmd);
+    _delay_ms(50);
 }
 
 /* Interrupt when power (sync) button is pressed */
 ISR(INT0_vect)
 {
     send_rf_sync();
+    _delay_10ms(300);
 }
 
 int

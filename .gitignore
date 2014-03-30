@@ -2,3 +2,4 @@
 *.elf
 .DS_Store
 *.swp
+*.o
