@@ -11,4 +11,10 @@ System flow:
 
 On interrupt received:
 1) Send sync command
- - To send data, need to send when clocked by the RF board (another interrupt)
+
+INT0 is triggered by the sync button.
+
+Power saving:
+1st attempt used 4.2mA at idle
+2nd attempt added "power_all_disable()" and used 2.9mA at idle
+3rd attempt added sleep and used 0mA (!) at idle

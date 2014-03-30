@@ -2,6 +2,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
+#include <avr/power.h>
 
 #include <util/delay.h>
 
@@ -21,7 +22,7 @@
 #define CLK_DDR      DDRA
 #define CLK_PIN      PA0
 
-#define digitalRead(pin, port_pin)      \
+#define digitalRead(pin, port_pin)  \
     ((port_pin & (1 << pin)) != 0)
 
 #define digitalWrite(pin, data)     \
@@ -95,8 +96,15 @@ init_system()
     pinMode(CLK_DDR, CLK_PIN, INPUT);
 
     // Enable external interrupts
-    MCUCR  |= (1 << ISC00); // Interrupt on rising edge
+
+    //Can't use this or else can't wake from sleep
+    //MCUCR  |= (1 << ISC00); // Interrupt on rising edge
     GIMSK  |= (1 << INT0);  // INT0 enable
+
+    //Power saving
+    power_all_disable();
+
+    set_sleep_mode(SLEEP_MODE_STANDBY);
     _delay_10ms(300);
 }
 
@@ -123,7 +131,6 @@ send_rf_sync()
 ISR(INT0_vect)
 {
     send_rf_sync();
-    _delay_10ms(300);
 }
 
 int
@@ -136,7 +143,11 @@ main ()
 
     sei();      //Enable interrupts
 
+    //Time to snooze
+    sleep_enable();
+
     while (1) {
+        sleep_cpu();
     }
 
     return 0;
