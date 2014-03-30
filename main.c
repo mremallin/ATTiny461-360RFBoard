@@ -12,7 +12,7 @@
 #define LED_CMD      0x084
 #define LED_ANIM_CMD 0x085
 
-#define RF_CMD_BITS  10
+#define RF_CMD_BITS  9
 
 #define DATA_PORT    PORTB
 #define DATA_DDR     DDRB
@@ -46,10 +46,6 @@ typedef uint8_t bool;
 #define TRUE  1
 #define FALSE 0
 
-uint8_t  led_cmd[RF_CMD_BITS]  = {0, 0, 1, 0, 0, 0, 0, 1, 0, 0};
-uint8_t  anim_cmd[RF_CMD_BITS] = {0, 0, 1, 0, 0, 0, 0, 1, 0, 1};
-uint8_t  sync_cmd[RF_CMD_BITS] = {0, 0, 0, 0, 0, 0, 0, 1, 0, 0};
-
 void
 _delay_10ms(uint16_t count)
 {
@@ -59,7 +55,7 @@ _delay_10ms(uint16_t count)
 }
 
 void
-send_data(uint8_t *data)
+send_data(uint32_t data)
 {
     uint8_t i;
     
@@ -68,11 +64,11 @@ send_data(uint8_t *data)
     //Send start bit
     digitalWrite(DATA_PIN, 0);
 
-    for (i = 0; i < RF_CMD_BITS; i++) {
+    for (i = 0; i <= RF_CMD_BITS; i++) {
         // Waits for external clock
         while(digitalRead(CLK_PIN, CLK_PORT_PIN) != 0x00) {}
 
-        if (data[i] != 0) {
+        if ((data & (1 << (RF_CMD_BITS - i))) != 0) {
             digitalWrite(DATA_PIN, 1);
         } else {
             digitalWrite(DATA_PIN, 0);
@@ -103,27 +99,28 @@ init_system()
 
     //Power saving
     power_all_disable();
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 
-    set_sleep_mode(SLEEP_MODE_STANDBY);
-    _delay_10ms(300);
+    //Wait 2s for the RF board to init
+    _delay_10ms(200);
 }
 
 void
 init_rf_led()
 {
     /* Send LED init command */
-    send_data(led_cmd);
+    send_data(LED_CMD);
     _delay_ms(50);
 
     /* Send LED startup animation command */
-    send_data(anim_cmd);
+    send_data(LED_ANIM_CMD);
     _delay_ms(50);
 }
 
 void
 send_rf_sync()
 {
-    send_data(sync_cmd);
+    send_data(SYNC_CMD);
     _delay_ms(50);
 }
 
