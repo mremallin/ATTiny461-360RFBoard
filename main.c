@@ -1,12 +1,30 @@
+/******************************************************************************
+ * main.c - Main source file for the Wireless 360 Controller Adapter
+ *
+ * Heavily influenced by:
+ *   - http://dilisilib.wordpress.com/hacking/xbox-360-rf-module-arduino/
+ *
+ * Author: Mike Mallin
+ * Date:   March 2014
+ ******************************************************************************/
+
+/*
+ * ----------------------------------------------------------------------------
+ * "THE BEER-WARE LICENSE" (Revision 42):
+ * <mike@mremallin.ca> wrote this file. As long as you retain this notice you
+ * can do whatever you want with this stuff. If we meet some day, and you think
+ * this stuff is worth it, you can buy me a beer in return, Mike Mallin
+ * ----------------------------------------------------------------------------
+ */
+
 #include <inttypes.h>
+#include <stdint.h>
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 #include <avr/power.h>
-
 #include <util/delay.h>
-
-#include <stdint.h>
 
 #define SYNC_CMD     0x004
 #define LED_CMD      0x084
@@ -78,6 +96,7 @@ send_data(uint32_t data)
         while(digitalRead(CLK_PIN, CLK_PORT_PIN) == 0x00) {}
     }
 
+    //Done
     digitalWrite(DATA_PIN, 1);
     pinMode(DATA_DDR, DATA_PIN, INPUT);
 }
