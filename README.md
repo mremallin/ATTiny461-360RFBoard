@@ -1,4 +1,4 @@
-TTiny461-360RFBoard
+ATTiny461-360RFBoard
 ====================
 
 This is some code to allow you to controller the Xbox 360 RF Board with an ATTiny461.
