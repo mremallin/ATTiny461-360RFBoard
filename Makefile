@@ -1,7 +1,7 @@
 # Name: Makefile
-# Author: <insert your name here>
-# Copyright: <insert your copyright message here>
-# License: <insert your license reference here>
+# Author: Mike Mallin
+# Copyright: March 2014
+# License: As described in LICENSE.md
 
 # This is a prototype Makefile. Modify it according to your needs.
 # You should at least check the settings for
@@ -21,7 +21,7 @@ DEVICE     = attiny461
 CLOCK      = 8000000
 PROGRAMMER = -c usbasp -P usb
 OBJECTS    = main.o
-FUSES      = #-U hfuse:w:0xd9:m -U lfuse:w:0x24:m
+FUSES      = -U hfuse:w:0xdf:m -U lfuse:w:0xe2:m -U efuse:w:0x01:m
 
 # ATMega8 fuse bits used above (fuse bits for other devices are different!):
 # Example for 8 MHz internal oscillator
